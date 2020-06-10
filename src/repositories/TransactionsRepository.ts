@@ -1,6 +1,8 @@
-import { EntityRepository, Repository } from 'typeorm';
+import { EntityRepository, Repository, getCustomRepository } from 'typeorm';
 
 import Transaction from '../models/Transaction';
+import CategoryRepository from './CategoryRepository';
+
 
 interface Balance {
   income: number;
@@ -31,6 +33,29 @@ class TransactionsRepository extends Repository<Transaction> {
     };
 
     return newBalance;
+  }
+
+  public async findWithCategories() {
+    const transactions = await this.find();
+
+    const mappedTransactions = transactions.map(async t => {
+      const categoryRepository = getCustomRepository(CategoryRepository);
+      const category = await categoryRepository.findOne(t.category_id);
+
+      return {
+        id: t.id,
+        title: t.title,
+        type: t.type,
+        value: t.value,
+        created_at: t.created_at,
+        updated_at: t.updated_at,
+        category
+      }
+
+    });
+
+    const result = await Promise.all(mappedTransactions);
+    return result;
   }
 }
 
